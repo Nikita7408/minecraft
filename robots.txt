@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nikita7408.github.io/minecraft/sitemap.xml
