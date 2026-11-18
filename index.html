@@ -29,7 +29,33 @@ Controls:
 
 <head>
   <meta charset="utf-8">
-  <title>Minecraft - Remodeled by Nikita Levchenko</title>
+  <title>Minecraft Online Free - Play Minecraft by Nikita Levchenko in Your Browser</title>
+  <meta name="description" content="Play Minecraft online free in your browser - no download, no install, no sign up. Survival mode, huge caves, TNT explosions, multiplayer with friends, and more. A free Minecraft game by Nikita Levchenko (Nikita7408).">
+  <meta name="keywords" content="minecraft, minecraft online, minecraft free, minecraft online free, minecraft unblocked, minecraft browser, minecraft web, minecraft in browser, minecraft in your browser, play minecraft free, play minecraft online, play minecraft now, minecraft no download, minecraft no install, minecraft no sign up, minecraft by nikita, minecraft by nikita levchenko, minecraft nikita7408, nikita levchenko, nikita levchenko games, nikita levchenko minecraft, nikita7408, nikita7408 minecraft, free minecraft game, minecraft clone, minecraft remake, minecraft remodel, minecraft voxel game, minecraft sandbox game, survival minecraft online, minecraft survival mode, minecraft creative mode, minecraft multiplayer free, minecraft multiplayer online, minecraft with friends, minecraft co-op, minecraft tnt, minecraft explosions, minecraft caves, minecraft cave generation, minecraft mining, minecraft building game, browser based minecraft, browser minecraft game, html5 minecraft, javascript minecraft, webgl minecraft, minecraft fan game, minecraft inspired game, minecraft style game, minecraft alternative, free block building game, free sandbox game online, mine and craft online, voxel sandbox free, games by nikita levchenko, minecraft download free pc alternative">
+  <meta name="author" content="Nikita Levchenko">
+  <link rel="canonical" href="https://nikita7408.github.io/minecraft/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Minecraft Online Free - Play Minecraft by Nikita Levchenko">
+  <meta property="og:description" content="A free browser-based Minecraft-style voxel game - survival, caves, TNT, and multiplayer. No install needed.">
+  <meta property="og:url" content="https://nikita7408.github.io/minecraft/">
+  <meta property="og:site_name" content="Minecraft by Nikita">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Minecraft Online Free - Play Minecraft by Nikita Levchenko">
+  <meta name="twitter:description" content="A free browser-based Minecraft-style voxel game - survival, caves, TNT, and multiplayer.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Minecraft by Nikita Levchenko",
+    "url": "https://nikita7408.github.io/minecraft/",
+    "author": { "@type": "Person", "name": "Nikita Levchenko" },
+    "applicationCategory": "Game",
+    "operatingSystem": "Any (runs in a web browser)",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "description": "A free, browser-based Minecraft-style voxel game with survival mode, caves, TNT, and multiplayer."
+  }
+  </script>
 </head>
 <style>
   body {
@@ -43,6 +69,7 @@ Controls:
 </style>
 
 <body>
+  <div style="position:fixed;z-index:99998;bottom:4px;left:4px;max-width:70vw;color:rgba(255,255,255,0.55);font:10px Arial,sans-serif;pointer-events:none;">Minecraft Online Free by Nikita Levchenko (Nikita7408) - a free browser-based Minecraft game with survival mode, huge caves, TNT, and multiplayer. No download needed. Fan-made remodel, not affiliated with or endorsed by Mojang/Microsoft.</div>
   <div id="customTopBar">
     <a href="https://donate.stripe.com/bJe5kw2j05zq2UUcu1bV603" target="_blank" rel="noopener noreferrer">♥ Donate</a>
     <span id="survivalStatus">SURVIVAL MODE</span>
@@ -1449,13 +1476,13 @@ Controls:
         }
 
         function triggerTntExplosion(x, y, z, fromRemote) {
-          var radius = 6; // extremely powerful
+          var radius = 40; // extremely powerful -- nothing is immune, not even bedrock
           for (var dx = -radius; dx <= radius; dx++) {
             for (var dy = -radius; dy <= radius; dy++) {
               for (var dz = -radius; dz <= radius; dz++) {
                 if (dx * dx + dy * dy + dz * dz <= radius * radius) {
                   var bx = x + dx, by = y + dy, bz = z + dz;
-                  if (by > 0 && by < maxHeight && world.getBlock(bx, by, bz) !== blockIds.bedrock) {
+                  if (by >= 0 && by < maxHeight) {
                     world.setBlock(bx, by, bz, 0);
                     worldEdits[bx + "," + by + "," + bz] = 0;
                   }
@@ -1463,6 +1490,31 @@ Controls:
               }
             }
           }
+          // Red liquid splash: scatter temporary red blocks through the crater, then clear them
+          var liquidRadius = Math.min(16, radius);
+          var liquidSpots = [];
+          for (var ldx = -liquidRadius; ldx <= liquidRadius; ldx += 2) {
+            for (var ldy = -liquidRadius; ldy <= liquidRadius; ldy += 2) {
+              for (var ldz = -liquidRadius; ldz <= liquidRadius; ldz += 2) {
+                if (ldx * ldx + ldy * ldy + ldz * ldz <= liquidRadius * liquidRadius && Math.random() < 0.5) {
+                  var lx = x + ldx, ly = y + ldy, lz = z + ldz;
+                  if (ly >= 0 && ly < maxHeight && world.getBlock(lx, ly, lz) === 0) {
+                    world.setBlock(lx, ly, lz, blockIds.redWool);
+                    liquidSpots.push([lx, ly, lz]);
+                  }
+                }
+              }
+            }
+          }
+          win.setTimeout(function() {
+            for (var si = 0; si < liquidSpots.length; si++) {
+              var s = liquidSpots[si];
+              if (world.getBlock(s[0], s[1], s[2]) === blockIds.redWool) {
+                world.setBlock(s[0], s[1], s[2], 0);
+                worldEdits[s[0] + "," + s[1] + "," + s[2]] = 0;
+              }
+            }
+          }, 1300);
           if (!fromRemote) {
             mpBroadcast({
               op: "explosion",
@@ -1657,11 +1709,26 @@ Controls:
             mpConnections.splice(idx, 1);
           }
         });
+        conn.on("error", function(err) {
+          var statusEl = document.getElementById("mcMpStatus");
+          if (statusEl) statusEl.textContent = "Connection error - try again";
+          if (!mpIsHost) {
+            mpActive = false;
+            if (mpPeer) {
+              mpPeer.destroy();
+            }
+            mpPeer = null;
+          }
+        });
       }
 
       function mpHostGame() {
-        if (mpPeer) {
+        if (mpActive) {
           return;
+        }
+        if (mpPeer) {
+          mpPeer.destroy();
+          mpPeer = null;
         }
         var statusEl = document.getElementById("mcMpStatus");
         if (statusEl) statusEl.textContent = "Connecting...";
@@ -1686,17 +1753,39 @@ Controls:
           });
         });
         mpPeer.on("error", function(err) {
-          if (statusEl) statusEl.textContent = "Error: " + err.type;
+          if (statusEl) statusEl.textContent = "Error: " + err.type + " - try again";
+          if (mpPeer) {
+            mpPeer.destroy();
+          }
+          mpPeer = null;
+          mpActive = false;
         });
       }
 
       function mpJoinGame(code) {
-        if (mpPeer || !code) {
+        if (mpActive) {
           return;
         }
         var statusEl = document.getElementById("mcMpStatus");
+        if (!code) {
+          if (statusEl) statusEl.textContent = "Enter a code first";
+          return;
+        }
+        if (mpPeer) {
+          mpPeer.destroy();
+          mpPeer = null;
+        }
         if (statusEl) statusEl.textContent = "Connecting...";
         mpPeer = new Peer();
+        var connectTimeout = win.setTimeout(function() {
+          if (!mpActive) {
+            if (statusEl) statusEl.textContent = "Couldn't connect - check the code and try again";
+            if (mpPeer) {
+              mpPeer.destroy();
+            }
+            mpPeer = null;
+          }
+        }, 12000);
         mpPeer.on("open", function(id) {
           mpLocalId = id;
           mpIsHost = false;
@@ -1704,11 +1793,18 @@ Controls:
           mpSetupConnection(conn);
           conn.on("open", function() {
             mpActive = true;
+            win.clearTimeout(connectTimeout);
             if (statusEl) statusEl.textContent = "Connected!";
           });
         });
         mpPeer.on("error", function(err) {
-          if (statusEl) statusEl.textContent = "Error: " + err.type;
+          win.clearTimeout(connectTimeout);
+          if (statusEl) statusEl.textContent = "Error: " + err.type + " - try again";
+          if (mpPeer) {
+            mpPeer.destroy();
+          }
+          mpPeer = null;
+          mpActive = false;
         });
       }
       window.mpHostGame = mpHostGame;
@@ -3215,7 +3311,7 @@ Controls:
               ground = Math.round(noise(wx * generator.smooth, wz * generator.smooth) * popHilliness);
               var popLakeNoise = noise((wx + 10000) * generator.smooth * 0.8, (wz + 10000) * generator.smooth * 0.8);
               var popIsLake = popLakeNoise > 0.54;
-              var popBiomeNoise = noise((wx + 20000) * generator.smooth * 0.18, (wz + 20000) * generator.smooth * 0.18);
+              var popBiomeNoise = noise((wx + 20000) * generator.smooth * 0.03, (wz + 20000) * generator.smooth * 0.03);
               var popIsDesert = popBiomeNoise > 0.56;
               if (!popIsLake && !popIsDesert && random() < 0.01) {
                 top = ground + Math.floor(4.5 + random(2.5));
@@ -3419,7 +3515,7 @@ Controls:
               var lakeNoise = noise((wx + 10000) * smoothness * 0.8, (wz + 10000) * smoothness * 0.8);
               var isLake = lakeNoise > 0.54;
               // Biomes: a coarse noise field picks snow / plains / desert over huge (but not planet-scale) regions
-              var biomeNoise = noise((wx + 20000) * smoothness * 0.18, (wz + 20000) * smoothness * 0.18);
+              var biomeNoise = noise((wx + 20000) * smoothness * 0.03, (wz + 20000) * smoothness * 0.03);
               var biome = biomeNoise < 0.4 ? "snow" : (biomeNoise > 0.56 ? "desert" : "plains");
               var lakeFloor = Math.min(gen, seaLevel - 5);
               var top = isLake ? lakeFloor : gen;
